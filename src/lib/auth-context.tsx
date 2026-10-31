@@ -9,8 +9,11 @@ interface AuthContextType {
   role: UserRole | null;
   isAuthenticated: boolean;
   isSuperAdmin: boolean;
+  superAdminPassword: string;
   loginAs: (profileId: string) => void;
   loginWithCredentials: (email: string, password?: string) => { success: boolean; message: string };
+  changePassword: (oldPass: string, newPass: string) => { success: boolean; message: string };
+  resetPasswordToDefault: () => void;
   logout: () => void;
   availableProfiles: UserProfile[];
 }
@@ -19,18 +22,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [superAdminPassword, setSuperAdminPasswordState] = useState<string>('admin123');
 
   useEffect(() => {
+    // Load saved user
     const savedUserId = localStorage.getItem('aurora_current_user_id');
     if (savedUserId) {
       const found = INITIAL_PROFILES.find((p) => p.id === savedUserId);
       if (found) {
         setUser(found);
-        return;
+      } else {
+        setUser(INITIAL_PROFILES.find((p) => p.role === 'passenger') || null);
       }
+    } else {
+      // Default to passenger for public site
+      setUser(INITIAL_PROFILES.find((p) => p.role === 'passenger') || null);
     }
-    // Default to passenger for public site
-    setUser(INITIAL_PROFILES.find((p) => p.role === 'passenger') || null);
+
+    // Load saved super admin password
+    const savedPass = localStorage.getItem('aurora_superadmin_password');
+    if (savedPass) {
+      setSuperAdminPasswordState(savedPass);
+    }
   }, []);
 
   const isSuperAdmin = Boolean(
@@ -52,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginWithCredentials = (email: string, _password?: string): { success: boolean; message: string } => {
+  const loginWithCredentials = (email: string, password?: string): { success: boolean; message: string } => {
     const cleanEmail = email.trim().toLowerCase();
     const found = INITIAL_PROFILES.find((p) => p.email.toLowerCase() === cleanEmail);
 
@@ -60,13 +73,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'এই ইমেইল দিয়ে কোনো অ্যাকাউন্ট খুঁজে পাওয়া যায়নি।' };
     }
 
-    if (found.role === 'platform_super_admin' && cleanEmail !== 'myshaibnatchowdhury@gmail.com') {
-      return { success: false, message: 'অননুমোদিত অ্যাক্সেস: শুধুমাত্র myshaibnatchowdhury@gmail.com সুপার অ্যাডমিন হতে পারবেন।' };
+    if (found.role === 'platform_super_admin') {
+      if (cleanEmail !== 'myshaibnatchowdhury@gmail.com') {
+        return { success: false, message: 'অননুমোদিত অ্যাক্সেস: শুধুমাত্র myshaibnatchowdhury@gmail.com সুপার অ্যাডমিন হতে পারবেন।' };
+      }
+
+      // Verify custom/set password
+      const enteredPass = (password || '').trim();
+      const currentPass = localStorage.getItem('aurora_superadmin_password') || superAdminPassword;
+      if (enteredPass !== currentPass) {
+        return { success: false, message: 'ভুল পাসওয়ার্ড! অনুগ্রহ করে সঠিক পাসওয়ার্ডটি দিন অথবা "পাসওয়ার্ড পরিবর্তন / রিসেট" অপশনটি ব্যবহার করুন।' };
+      }
     }
 
     setUser(found);
     localStorage.setItem('aurora_current_user_id', found.id);
     return { success: true, message: 'লগইন সফল হয়েছে।' };
+  };
+
+  const changePassword = (oldPass: string, newPass: string): { success: boolean; message: string } => {
+    const currentPass = localStorage.getItem('aurora_superadmin_password') || superAdminPassword;
+    if (oldPass.trim() !== currentPass) {
+      return { success: false, message: 'বর্তমান পাসওয়ার্ডটি সঠিক নয়।' };
+    }
+
+    if (newPass.trim().length < 4) {
+      return { success: false, message: 'নতুন পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।' };
+    }
+
+    const cleanNewPass = newPass.trim();
+    setSuperAdminPasswordState(cleanNewPass);
+    localStorage.setItem('aurora_superadmin_password', cleanNewPass);
+    return { success: true, message: 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে!' };
+  };
+
+  const resetPasswordToDefault = () => {
+    setSuperAdminPasswordState('admin123');
+    localStorage.setItem('aurora_superadmin_password', 'admin123');
   };
 
   const logout = () => {
@@ -81,8 +124,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: user ? user.role : null,
         isAuthenticated: !!user,
         isSuperAdmin,
+        superAdminPassword,
         loginAs,
         loginWithCredentials,
+        changePassword,
+        resetPasswordToDefault,
         logout,
         availableProfiles: INITIAL_PROFILES,
       }}

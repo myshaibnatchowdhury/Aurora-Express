@@ -19,13 +19,49 @@ import {
   Settings,
   Sliders,
   Lock,
+  KeyRound,
+  Eye,
+  EyeOff,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SuperAdminPlatformPage() {
-  const { user } = useAuth();
+  const { user, changePassword, superAdminPassword, resetPasswordToDefault } = useAuth();
   const { language, formatPrice } = useLanguage();
   const [tenantsList, setTenantsList] = useState(db.tenants);
+
+  // Password Modal in Platform
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [oldPass, setOldPass] = useState('');
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [passMsg, setPassMsg] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassMsg(null);
+    if (newPass !== confirmPass) {
+      setPassMsg({ type: 'error', text: 'নতুন পাসওয়ার্ড এবং নিশ্চিত পাসওয়ার্ড মিলছে না!' });
+      return;
+    }
+    const res = changePassword(oldPass, newPass);
+    if (res.success) {
+      setPassMsg({ type: 'success', text: 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে!' });
+      setTimeout(() => {
+        setShowPasswordModal(false);
+        setOldPass('');
+        setNewPass('');
+        setConfirmPass('');
+        setPassMsg(null);
+      }, 1200);
+    } else {
+      setPassMsg({ type: 'error', text: res.message });
+    }
+  };
 
   const isSuperAdminAuthorized = Boolean(
     user &&
@@ -115,8 +151,19 @@ export default function SuperAdminPlatformPage() {
             </p>
           </div>
 
-          <div className="px-4 py-2 bg-navy-900 border border-navy-800 rounded-xl text-xs text-gray-300">
-            প্ল্যাটফর্ম ভার্সন: <strong>v2.4 LTS</strong> (Multi-Tenant RLS Enabled)
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowPasswordModal(true)}
+              className="px-4 py-2.5 bg-amber-400 hover:bg-amber-500 text-navy-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition-all active:scale-95"
+            >
+              <KeyRound className="w-4 h-4 text-navy-950" />
+              <span>পাসওয়ার্ড পরিবর্তন (Change Password)</span>
+            </button>
+
+            <div className="px-4 py-2 bg-navy-900 border border-navy-800 rounded-xl text-xs text-gray-300">
+              প্ল্যাটফর্ম ভার্সন: <strong>v2.4 LTS</strong> (Multi-Tenant RLS Enabled)
+            </div>
           </div>
         </div>
       </div>
@@ -260,6 +307,139 @@ export default function SuperAdminPlatformPage() {
           </div>
         </div>
       </main>
+
+      {/* Super Admin Change Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4 animate-in zoom-in-95 text-xs">
+            <button
+              onClick={() => {
+                setShowPasswordModal(false);
+                setPassMsg(null);
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 text-navy-900 border-b border-gray-100 pb-3">
+              <KeyRound className="w-5 h-5 text-amber-500" />
+              <div>
+                <h3 className="text-base font-bold text-navy-900">সুপার অ্যাডমিন পাসওয়ার্ড পরিবর্তন</h3>
+                <p className="text-[11px] text-gray-400 font-normal">
+                  Mysha Ibnat Chowdhury (`myshaibnatchowdhury@gmail.com`)
+                </p>
+              </div>
+            </div>
+
+            {passMsg && (
+              <div
+                className={`p-3 rounded-xl font-semibold flex items-center gap-2 ${
+                  passMsg.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}
+              >
+                {passMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                )}
+                <span>{passMsg.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordChange} className="space-y-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  বর্তমান পাসওয়ার্ড (Current Password) *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showOld ? 'text' : 'password'}
+                    value={oldPass}
+                    onChange={(e) => setOldPass(e.target.value)}
+                    placeholder="বর্তমান পাসওয়ার্ড দিন..."
+                    className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-gray-300 font-mono text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOld(!showOld)}
+                    className="absolute right-3 top-2.5 p-1 text-gray-400 hover:text-gray-700"
+                    title={showOld ? 'লুকান' : 'দেখুন'}
+                  >
+                    {showOld ? <EyeOff className="w-4 h-4 text-amber-600" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  নতুন পাসওয়ার্ড (New Password) *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNew ? 'text' : 'password'}
+                    value={newPass}
+                    onChange={(e) => setNewPass(e.target.value)}
+                    placeholder="আপনার নতুন পাসওয়ার্ড দিন..."
+                    className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-gray-300 font-mono text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNew(!showNew)}
+                    className="absolute right-3 top-2.5 p-1 text-gray-400 hover:text-gray-700"
+                    title={showNew ? 'লুকান' : 'দেখুন'}
+                  >
+                    {showNew ? <EyeOff className="w-4 h-4 text-amber-600" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">
+                  নতুন পাসওয়ার্ড নিশ্চিত করুন (Confirm Password) *
+                </label>
+                <input
+                  type={showNew ? 'text' : 'password'}
+                  value={confirmPass}
+                  onChange={(e) => setConfirmPass(e.target.value)}
+                  placeholder="পুনরায় নতুন পাসওয়ার্ড দিন..."
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-300 font-mono text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-navy-950 font-bold text-xs shadow-md transition-all active:scale-95"
+              >
+                নতুন পাসওয়ার্ড সেট ও সেভ করুন
+              </button>
+            </form>
+
+            <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+              <span className="text-gray-400">ডিফল্ট পাসওয়ার্ড: admin123</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('পাসওয়ার্ড রিসেট করে admin123 করতে চান?')) {
+                    resetPasswordToDefault();
+                    alert('পাসওয়ার্ড রিসেট করে admin123 করা হয়েছে!');
+                    setShowPasswordModal(false);
+                  }
+                }}
+                className="text-red-600 hover:underline font-bold flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>রিসেট (admin123)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
