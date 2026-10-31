@@ -399,8 +399,8 @@ export function generateSeedTrips(): Trip[] {
 export const INITIAL_PROFILES: UserProfile[] = [
   {
     id: 'user-superadmin',
-    email: 'admin@auroraexpress.com',
-    fullName: 'Saif Ahmed (Super Admin)',
+    email: 'myshaibnatchowdhury@gmail.com',
+    fullName: 'Mysha Ibnat Chowdhury (Super Admin)',
     phone: '01700-000001',
     role: 'platform_super_admin',
     status: 'ACTIVE',

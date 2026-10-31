@@ -9,6 +9,7 @@ import { useLanguage } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth-context';
 import {
   ShieldCheck,
+  ShieldAlert,
   Building2,
   DollarSign,
   Users,
@@ -17,12 +18,20 @@ import {
   Layers,
   Settings,
   Sliders,
+  Lock,
 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function SuperAdminPlatformPage() {
   const { user } = useAuth();
   const { language, formatPrice } = useLanguage();
   const [tenantsList, setTenantsList] = useState(db.tenants);
+
+  const isSuperAdminAuthorized = Boolean(
+    user &&
+    user.email?.toLowerCase() === 'myshaibnatchowdhury@gmail.com' &&
+    user.role === 'platform_super_admin'
+  );
 
   const toggleTenantStatus = (id: string) => {
     setTenantsList((prev) =>
@@ -35,6 +44,54 @@ export default function SuperAdminPlatformPage() {
       })
     );
   };
+
+  if (!isSuperAdminAuthorized) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
+        <Navbar />
+
+        <main className="max-w-md mx-auto px-4 py-20 flex-grow w-full flex items-center justify-center">
+          <div className="bg-white rounded-3xl border-2 border-red-200 shadow-2xl p-8 text-center space-y-5 animate-in zoom-in-95">
+            <div className="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto shadow-inner">
+              <Lock className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-1">
+              <h1 className="text-xl font-black text-navy-900">
+                সুপার অ্যাডমিন অ্যাক্সেস সংরক্ষিত
+              </h1>
+              <p className="text-xs text-red-600 font-semibold">
+                Unauthorized Access Blocked (403 Forbidden)
+              </p>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              এই SaaS সেন্ট্রাল প্ল্যাটফর্মটি শুধুমাত্র <strong>Mysha Ibnat Chowdhury (myshaibnatchowdhury@gmail.com)</strong> এর জন্য নির্ধারিত। অন্য কোনো ব্যবহারকারী এই কনসোলে প্রবেশ করতে পারবেন না।
+            </p>
+
+            <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-600 text-left border border-gray-200 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-gray-400 block">বর্তমান সক্রিয় ব্যবহারকারী:</span>
+              <p className="font-bold text-navy-900">{user?.fullName || 'অজ্ঞাত ব্যবহারকারী'}</p>
+              <p className="font-mono text-gray-500 text-[11px]">{user?.email || 'N/A'}</p>
+              <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-bold rounded bg-gray-200 text-gray-700">
+                ভূমিকা: {user?.role ? user.role.toUpperCase() : 'NONE'}
+              </span>
+            </div>
+
+            <Link
+              href="/login?role=superadmin"
+              className="w-full py-3.5 px-4 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+            >
+              <ShieldCheck className="w-4 h-4 text-amber-400" />
+              <span>Mysha Ibnat Chowdhury হিসেবে সাইন-ইন করুন</span>
+            </Link>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
@@ -54,7 +111,7 @@ export default function SuperAdminPlatformPage() {
               মাল্টি-টেন্যান্ট বাস টিকিটিং ক্লাউড প্ল্যাটফর্ম
             </h1>
             <p className="text-xs text-gray-400 mt-1">
-              সুপার অ্যাডমিনিস্ট্রেটর: <strong>{user?.fullName}</strong> ({user?.email})
+              সুপার অ্যাডমিনিস্ট্রেটর: <strong>Mysha Ibnat Chowdhury</strong> (myshaibnatchowdhury@gmail.com)
             </p>
           </div>
 

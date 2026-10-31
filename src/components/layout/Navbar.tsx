@@ -19,11 +19,13 @@ import {
   CheckCircle2,
   LogOut,
   Ticket,
+  Lock,
+  LogIn,
 } from 'lucide-react';
 
 export default function Navbar() {
   const { language, setLanguage, t } = useLanguage();
-  const { user, role, logout, availableProfiles, loginAs } = useAuth();
+  const { user, role, logout, availableProfiles, loginAs, isSuperAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -175,32 +177,72 @@ export default function Navbar() {
                     <Link
                       href="/platform"
                       onClick={() => setShowRoleModal(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-orange-50 hover:text-[#FF6B0A]"
+                      className={`flex items-center justify-between px-4 py-2 text-xs font-medium ${
+                        isSuperAdmin
+                          ? 'text-gray-700 hover:bg-orange-50 hover:text-[#FF6B0A]'
+                          : 'text-gray-500 hover:bg-gray-50'
+                      }`}
                     >
-                      <ShieldCheck className="w-4 h-4 text-amber-600" />
-                      <span>Super Admin (SaaS Platform)</span>
+                      <div className="flex items-center gap-2.5">
+                        {isSuperAdmin ? (
+                          <ShieldCheck className="w-4 h-4 text-amber-600" />
+                        ) : (
+                          <Lock className="w-4 h-4 text-gray-400" />
+                        )}
+                        <span>Super Admin (SaaS Platform)</span>
+                      </div>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                          isSuperAdmin
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
+                        {isSuperAdmin ? 'MYSHA' : 'RESTRICTED'}
+                      </span>
                     </Link>
                   </div>
 
                   <div className="border-t border-gray-100 py-1">
-                    <p className="px-4 py-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                      Switch Test Persona
-                    </p>
-                    {availableProfiles.slice(0, 5).map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          loginAs(p.id);
-                          setShowRoleModal(false);
-                        }}
-                        className={`w-full text-left px-4 py-1.5 text-xs flex items-center justify-between hover:bg-gray-100 ${
-                          user?.id === p.id ? 'font-bold text-[#FF6B0A]' : 'text-gray-600'
-                        }`}
+                    <div className="px-4 py-1 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                        Switch Persona
+                      </p>
+                      <Link
+                        href="/login"
+                        onClick={() => setShowRoleModal(false)}
+                        className="text-[10px] text-[#FF6B0A] hover:underline font-bold flex items-center gap-1"
                       >
-                        <span className="truncate">{p.fullName}</span>
-                        <span className="text-[10px] text-gray-400 uppercase">{p.role.split('_')[0]}</span>
-                      </button>
-                    ))}
+                        <LogIn className="w-3 h-3" />
+                        <span>লগইন পেজ</span>
+                      </Link>
+                    </div>
+                    {availableProfiles.map((p) => {
+                      const isTargetSuperAdmin = p.role === 'platform_super_admin';
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            loginAs(p.id);
+                            setShowRoleModal(false);
+                          }}
+                          className={`w-full text-left px-4 py-1.5 text-xs flex items-center justify-between hover:bg-gray-100 ${
+                            user?.id === p.id ? 'font-bold text-[#FF6B0A]' : 'text-gray-600'
+                          }`}
+                        >
+                          <span className="truncate max-w-[160px]">{p.fullName}</span>
+                          <span
+                            className={`text-[9px] uppercase px-1 py-0.2 rounded font-bold ${
+                              isTargetSuperAdmin
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {isTargetSuperAdmin ? 'SUPER ADMIN' : p.role.split('_')[0]}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <div className="border-t border-gray-100 pt-1">

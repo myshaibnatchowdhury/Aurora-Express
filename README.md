@@ -117,7 +117,7 @@ Use the **User Menu** in the top navigation bar to switch between test personas 
 1. **Passenger**: `kamrul.hasan@gmail.com`
 2. **Counter Operator (Gabtoli)**: `counter.gabtoli@auroraexpress.com`
 3. **Company Owner (Managing Director)**: `owner@auroraexpress.com`
-4. **SaaS Super Admin**: `admin@auroraexpress.com`
+4. **SaaS Super Admin (Exclusive)**: Mysha Ibnat Chowdhury (`myshaibnatchowdhury@gmail.com`)
 5. **Agent Reseller Partner (Shohoz)**: `agent.shohoz@partner.com`
 6. **Boarding Staff (Sayedabad)**: `boarding.sayedabad@auroraexpress.com`
 
