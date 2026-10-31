@@ -21,22 +21,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const defaultSuperAdmin = INITIAL_PROFILES.find((p) => p.id === 'user-superadmin') || INITIAL_PROFILES[0];
+  const [user, setUser] = useState<UserProfile | null>(defaultSuperAdmin);
   const [superAdminPassword, setSuperAdminPasswordState] = useState<string>('admin123');
 
   useEffect(() => {
-    // Load saved user
+    // Migration flag to guarantee Mysha Ibnat Chowdhury is active by default
+    const hasMigrated = localStorage.getItem('aurora_active_mysha_admin_v2');
     const savedUserId = localStorage.getItem('aurora_current_user_id');
-    if (savedUserId) {
+
+    if (!hasMigrated) {
+      // Overwrite any old cached 'Kamrul' session and set Mysha as active Super Admin
+      setUser(defaultSuperAdmin);
+      localStorage.setItem('aurora_current_user_id', defaultSuperAdmin.id);
+      localStorage.setItem('aurora_active_mysha_admin_v2', 'true');
+    } else if (savedUserId) {
       const found = INITIAL_PROFILES.find((p) => p.id === savedUserId);
       if (found) {
         setUser(found);
       } else {
-        setUser(INITIAL_PROFILES.find((p) => p.role === 'passenger') || null);
+        setUser(defaultSuperAdmin);
       }
     } else {
-      // Default to passenger for public site
-      setUser(INITIAL_PROFILES.find((p) => p.role === 'passenger') || null);
+      setUser(defaultSuperAdmin);
     }
 
     // Load saved super admin password
@@ -44,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedPass) {
       setSuperAdminPasswordState(savedPass);
     }
-  }, []);
+  }, [defaultSuperAdmin]);
 
   const isSuperAdmin = Boolean(
     user &&

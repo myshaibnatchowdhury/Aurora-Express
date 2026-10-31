@@ -118,12 +118,27 @@ export default function Navbar() {
             <div className="relative">
               <button
                 onClick={() => setShowRoleModal(!showRoleModal)}
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-[#0D2B52] border border-blue-900/80 hover:border-[#FF6B0A] text-xs font-medium text-white transition-all"
+                className={`flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                  isSuperAdmin
+                    ? 'bg-amber-950/70 border-amber-500/80 text-amber-200 hover:border-amber-400 shadow-sm'
+                    : 'bg-[#0D2B52] border-blue-900/80 hover:border-[#FF6B0A] text-white'
+                }`}
               >
-                <div className="w-6 h-6 rounded-full bg-[#FF6B0A] flex items-center justify-center text-white font-bold text-[10px]">
-                  {user?.fullName.charAt(0) || 'U'}
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] ${
+                    isSuperAdmin ? 'bg-amber-500 shadow-sm' : 'bg-[#FF6B0A]'
+                  }`}
+                >
+                  {user?.fullName.charAt(0) || 'M'}
                 </div>
-                <span className="max-w-[110px] truncate">{user?.fullName.split(' ')[0]}</span>
+                <div className="flex flex-col text-left">
+                  <span className="max-w-[110px] truncate font-semibold leading-tight">
+                    {user?.fullName.split(' ')[0]}
+                  </span>
+                  {isSuperAdmin && (
+                    <span className="text-[9px] text-amber-400 font-bold leading-none">Super Admin</span>
+                  )}
+                </div>
                 <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
               </button>
 
@@ -133,9 +148,17 @@ export default function Navbar() {
                   <div className="px-4 py-2 border-b border-gray-100 bg-gray-50">
                     <p className="text-xs text-gray-500 font-medium">Current User / Role</p>
                     <p className="text-sm font-bold text-navy-900">{user?.fullName}</p>
-                    <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-semibold uppercase tracking-wider rounded bg-orange-100 text-[#FF6B0A]">
-                      {role?.replace(/_/g, ' ')}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span
+                        className={`inline-block px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded ${
+                          isSuperAdmin
+                            ? 'bg-amber-100 text-amber-800 font-bold'
+                            : 'bg-orange-100 text-[#FF6B0A]'
+                        }`}
+                      >
+                        {isSuperAdmin ? '👑 Super Admin (Mysha)' : role?.replace(/_/g, ' ')}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="py-1">
