@@ -108,6 +108,11 @@ function CheckoutContent() {
         <PaymentSimulator
           amount={pendingData.totalAmount}
           bookingRef={`TEMP-${trip.id.slice(0, 8)}`}
+          initialGateway={
+            (searchParams.get('method') as any) ||
+            pendingData.gateway ||
+            'BKASH'
+          }
           onPaymentSuccess={handlePaymentSuccess}
           onCancel={() => router.back()}
         />

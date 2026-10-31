@@ -18,6 +18,10 @@ import {
   AlertCircle,
   ArrowRight,
   Info,
+  Smartphone,
+  CreditCard,
+  Banknote,
+  CheckCircle2,
 } from 'lucide-react';
 
 function TripDetailContent() {
@@ -30,6 +34,10 @@ function TripDetailContent() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [sessionId, setSessionId] = useState<string>('');
+
+  // Payment Option: ONLINE (bKash/Nagad/Rocket/Card) or CASH
+  const [paymentOption, setPaymentOption] = useState<'ONLINE' | 'CASH'>('ONLINE');
+  const [onlineGateway, setOnlineGateway] = useState<'BKASH' | 'NAGAD' | 'ROCKET' | 'CARD'>('BKASH');
 
   // Passenger Form State
   const [passengerName, setPassengerName] = useState(user?.fullName || '');
@@ -92,9 +100,11 @@ function TripDetailContent() {
     if (selectedSeats.length === 0) {
       setErrorMsg(
         language === 'bn'
-          ? 'অনুগ্রহ করে কমপক্ষে ১টি আসন নির্বাচন করুন।'
-          : 'Please select at least 1 seat.'
+          ? 'অনুগ্রহ করে প্রথমে বামপাশের বাসের লেআউট থেকে আসন (সিট) নির্বাচন করুন।'
+          : 'Please select at least 1 seat from the bus seat layout on the left.'
       );
+      // Scroll to seat selector on mobile
+      window.scrollTo({ top: 300, behavior: 'smooth' });
       return;
     }
 
@@ -109,8 +119,33 @@ function TripDetailContent() {
 
     setIsSubmitting(true);
 
-    // Create a temporary booking or hold record
-    // Store in session storage and navigate to payment simulator
+    // If CASH payment is chosen:
+    if (paymentOption === 'CASH') {
+      const result = db.confirmBooking({
+        tripId: trip.id,
+        seatNumbers: selectedSeats,
+        sessionId,
+        passengerName,
+        passengerPhone,
+        passengerEmail,
+        passengerGender,
+        boardingPoint,
+        droppingPoint,
+        paymentMethod: 'CASH',
+        bookedVia: 'ONLINE',
+        userId: user?.id,
+      });
+
+      if (result.success && result.booking) {
+        router.push(`/ticket/${result.booking.id}`);
+      } else {
+        setErrorMsg(result.message || 'বুকিং সম্পন্ন করা সম্ভব হয়নি।');
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // If ONLINE payment (bKash, Nagad, Rocket, Card) is chosen:
     const pendingBooking = {
       tripId: trip.id,
       seatNumbers: selectedSeats,
@@ -122,10 +157,11 @@ function TripDetailContent() {
       boardingPoint,
       droppingPoint,
       totalAmount: totalPayable,
+      gateway: onlineGateway,
     };
 
     sessionStorage.setItem('aurora_pending_booking', JSON.stringify(pendingBooking));
-    router.push(`/payment/checkout?tripId=${trip.id}`);
+    router.push(`/payment/checkout?tripId=${trip.id}&method=${onlineGateway}`);
   };
 
   return (
@@ -301,6 +337,146 @@ function TripDetailContent() {
                 </select>
               </div>
 
+              {/* Payment Option Selector (Online vs Cash) */}
+              <div className="pt-3 border-t border-gray-100 space-y-3">
+                <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
+                  {language === 'bn' ? 'পেমেন্ট পদ্ধতি নির্বাচন করুন *' : 'Select Payment Method *'}
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Online Payment Card */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentOption('ONLINE')}
+                    className={`p-3.5 rounded-xl border-2 text-left transition-all relative ${
+                      paymentOption === 'ONLINE'
+                        ? 'border-[#FF6B0A] bg-orange-50/50 shadow-sm'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Smartphone className={`w-4 h-4 ${paymentOption === 'ONLINE' ? 'text-[#FF6B0A]' : 'text-gray-500'}`} />
+                      <span className="text-xs font-bold text-navy-900">অনলাইন পেমেন্ট</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-tight">
+                      বিকাশ, নগদ, রকেট বা কার্ড
+                    </p>
+                    {paymentOption === 'ONLINE' && (
+                      <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#FF6B0A]" />
+                    )}
+                  </button>
+
+                  {/* Cash Payment Card */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentOption('CASH')}
+                    className={`p-3.5 rounded-xl border-2 text-left transition-all relative ${
+                      paymentOption === 'CASH'
+                        ? 'border-emerald-600 bg-emerald-50/50 shadow-sm'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Banknote className={`w-4 h-4 ${paymentOption === 'CASH' ? 'text-emerald-600' : 'text-gray-500'}`} />
+                      <span className="text-xs font-bold text-navy-900">ক্যাশ পেমেন্ট</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-tight">
+                      কাউন্টারে নগদ টাকা পরিশোধ
+                    </p>
+                    {paymentOption === 'CASH' && (
+                      <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-600" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Sub-gateways for Online Payment (bKash, Nagad, Rocket, Card) */}
+                {paymentOption === 'ONLINE' && (
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2.5 animate-in fade-in">
+                    <p className="text-[11px] font-bold text-gray-600 uppercase">
+                      অনলাইন ওয়ালেট / মাধ্যম বেছে নিন:
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* bKash */}
+                      <button
+                        type="button"
+                        onClick={() => setOnlineGateway('BKASH')}
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-bold transition-all ${
+                          onlineGateway === 'BKASH'
+                            ? 'border-[#E2136E] bg-pink-50 text-[#E2136E] shadow-sm'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-[#E2136E] text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                          bK
+                        </div>
+                        <span className="truncate">বিকাশ (bKash)</span>
+                      </button>
+
+                      {/* Nagad */}
+                      <button
+                        type="button"
+                        onClick={() => setOnlineGateway('NAGAD')}
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-bold transition-all ${
+                          onlineGateway === 'NAGAD'
+                            ? 'border-[#F7941D] bg-orange-50 text-[#F7941D] shadow-sm'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-[#F7941D] text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                          না
+                        </div>
+                        <span className="truncate">নগদ (Nagad)</span>
+                      </button>
+
+                      {/* Rocket */}
+                      <button
+                        type="button"
+                        onClick={() => setOnlineGateway('ROCKET')}
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-bold transition-all ${
+                          onlineGateway === 'ROCKET'
+                            ? 'border-[#8C3494] bg-purple-50 text-[#8C3494] shadow-sm'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-[#8C3494] text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                          DB
+                        </div>
+                        <span className="truncate">রকেট (Rocket)</span>
+                      </button>
+
+                      {/* Cards */}
+                      <button
+                        type="button"
+                        onClick={() => setOnlineGateway('CARD')}
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-bold transition-all ${
+                          onlineGateway === 'CARD'
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+                          <CreditCard className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="truncate">কার্ড (Cards)</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Cash Payment Info Banner */}
+                {paymentOption === 'CASH' && (
+                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 space-y-1 animate-in fade-in">
+                    <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>কাউন্টার ক্যাশ পেমেন্ট সুবিধাজনক</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-700">
+                      টিকিট এখনই তাৎক্ষণিক বুক হবে। বাসে উঠার পূর্বে বা কাউন্টারে ক্যাশ টাকা পরিশোধ করতে হবে।
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Fare Breakdown Card */}
               <div className="pt-4 border-t border-gray-100 space-y-2 text-xs">
                 <div className="flex justify-between text-gray-600">
@@ -317,15 +493,52 @@ function TripDetailContent() {
                 </div>
               </div>
 
-              {/* Submit CTA */}
-              <button
-                type="submit"
-                disabled={isSubmitting || selectedSeats.length === 0}
-                className="w-full py-3.5 rounded-xl bg-[#FF6B0A] hover:bg-[#E65A00] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/30 transition-all active:scale-95"
-              >
-                <span>{language === 'bn' ? 'পেমেন্টে এগিয়ে যান' : 'Proceed to Payment'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {/* Seat Selection Guide if no seat selected */}
+              {selectedSeats.length === 0 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>বামপাশের বাস থেকে সিট নির্বাচন করুন (যেমন: A1, A2)</span>
+                </div>
+              )}
+
+              {/* Submit CTA Button */}
+              {paymentOption === 'CASH' ? (
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all active:scale-95"
+                >
+                  <Banknote className="w-4 h-4" />
+                  <span>
+                    {isSubmitting
+                      ? 'বুকিং তৈরি হচ্ছে...'
+                      : selectedSeats.length === 0
+                      ? 'সিট নির্বাচন করে ক্যাশ বুকিং করুন'
+                      : `ক্যাশ পেমেন্টে বুকিং নিশ্চিত করুন (${formatPrice(totalPayable)})`}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 rounded-xl bg-[#FF6B0A] hover:bg-[#E65A00] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/30 transition-all active:scale-95"
+                >
+                  <span>
+                    {isSubmitting
+                      ? 'প্রসেসিং হচ্ছে...'
+                      : selectedSeats.length === 0
+                      ? 'সিট নির্বাচন করে পেমেন্টে যান'
+                      : onlineGateway === 'BKASH'
+                      ? `বিকাশ (bKash) পেমেন্টে এগিয়ে যান (${formatPrice(totalPayable)})`
+                      : onlineGateway === 'NAGAD'
+                      ? `নগদ (Nagad) পেমেন্টে এগিয়ে যান (${formatPrice(totalPayable)})`
+                      : onlineGateway === 'ROCKET'
+                      ? `রকেট (Rocket) পেমেন্টে এগিয়ে যান (${formatPrice(totalPayable)})`
+                      : `কার্ড পেমেন্টে এগিয়ে যান (${formatPrice(totalPayable)})`}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </form>

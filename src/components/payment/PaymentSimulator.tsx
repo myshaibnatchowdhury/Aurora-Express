@@ -8,6 +8,7 @@ import { ShieldCheck, AlertTriangle, CheckCircle, CreditCard, Smartphone, Bankno
 interface PaymentSimulatorProps {
   amount: number;
   bookingRef: string;
+  initialGateway?: 'BKASH' | 'NAGAD' | 'ROCKET' | 'CARD' | 'CASH';
   onPaymentSuccess: (paymentDetails: {
     gateway: 'BKASH' | 'NAGAD' | 'ROCKET' | 'CARD' | 'CASH';
     transactionRef: string;
@@ -18,12 +19,17 @@ interface PaymentSimulatorProps {
 export default function PaymentSimulator({
   amount,
   bookingRef,
+  initialGateway,
   onPaymentSuccess,
   onCancel,
 }: PaymentSimulatorProps) {
   const { language, formatPrice } = useLanguage();
-  const [selectedMethod, setSelectedMethod] = useState<'BKASH' | 'NAGAD' | 'ROCKET' | 'CARD' | 'CASH'>('BKASH');
-  const [step, setStep] = useState<'SELECT' | 'DETAILS' | 'OTP' | 'PIN' | 'PROCESSING'>('SELECT');
+  const [selectedMethod, setSelectedMethod] = useState<'BKASH' | 'NAGAD' | 'ROCKET' | 'CARD' | 'CASH'>(
+    initialGateway || 'BKASH'
+  );
+  const [step, setStep] = useState<'SELECT' | 'DETAILS' | 'OTP' | 'PIN' | 'PROCESSING'>(
+    initialGateway && initialGateway !== 'CASH' ? 'DETAILS' : 'SELECT'
+  );
   const [mobileNumber, setMobileNumber] = useState('01817-987654');
   const [otp, setOtp] = useState('1234');
   const [pin, setPin] = useState('12345');
@@ -192,17 +198,39 @@ export default function PaymentSimulator({
         {step === 'DETAILS' && selectedMethod !== 'CARD' && (
           <form onSubmit={handleDetailsSubmit} className="mt-6 space-y-4">
             <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#E2136E] text-white flex items-center justify-center font-bold text-xs">
-                {selectedMethod.slice(0, 2)}
+              <div
+                className={`w-9 h-9 rounded-full text-white flex items-center justify-center font-bold text-xs shrink-0 ${
+                  selectedMethod === 'BKASH'
+                    ? 'bg-[#E2136E]'
+                    : selectedMethod === 'NAGAD'
+                    ? 'bg-[#F7941D]'
+                    : selectedMethod === 'ROCKET'
+                    ? 'bg-[#8C3494]'
+                    : 'bg-blue-600'
+                }`}
+              >
+                {selectedMethod === 'BKASH' ? 'bK' : selectedMethod === 'NAGAD' ? 'না' : 'DB'}
               </div>
               <div>
-                <p className="text-xs font-bold text-navy-900">{selectedMethod} Account</p>
-                <p className="text-[11px] text-gray-500">Enter your MFS mobile account number</p>
+                <p className="text-xs font-bold text-navy-900">
+                  {selectedMethod === 'BKASH'
+                    ? 'বিকাশ (bKash) একাউন্ট'
+                    : selectedMethod === 'NAGAD'
+                    ? 'নগদ (Nagad) একাউন্ট'
+                    : selectedMethod === 'ROCKET'
+                    ? 'রকেট (Rocket) একাউন্ট'
+                    : `${selectedMethod} Account`}
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  {language === 'bn' ? 'আপনার মোবাইল ওয়ালেট নম্বর দিন' : 'Enter your mobile wallet number'}
+                </p>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Mobile Number</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                {language === 'bn' ? 'মোবাইল নম্বর' : 'Mobile Number'}
+              </label>
               <input
                 type="tel"
                 value={mobileNumber}
@@ -219,13 +247,21 @@ export default function PaymentSimulator({
                 onClick={() => setStep('SELECT')}
                 className="flex-1 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100"
               >
-                Back
+                {language === 'bn' ? 'অন্যান্য মেথড' : 'Change Method'}
               </button>
               <button
                 type="submit"
-                className="flex-1 py-2.5 rounded-xl bg-[#FF6B0A] hover:bg-[#E65A00] text-white text-xs font-bold shadow-md"
+                className={`flex-1 py-2.5 rounded-xl text-white text-xs font-bold shadow-md transition-all ${
+                  selectedMethod === 'BKASH'
+                    ? 'bg-[#E2136E] hover:bg-[#C20F5D]'
+                    : selectedMethod === 'NAGAD'
+                    ? 'bg-[#F7941D] hover:bg-[#D97D14]'
+                    : selectedMethod === 'ROCKET'
+                    ? 'bg-[#8C3494] hover:bg-[#722778]'
+                    : 'bg-[#FF6B0A] hover:bg-[#E65A00]'
+                }`}
               >
-                Proceed (Next)
+                {language === 'bn' ? 'পরবর্তী ধাপ (OTP)' : 'Proceed (OTP)'}
               </button>
             </div>
           </form>

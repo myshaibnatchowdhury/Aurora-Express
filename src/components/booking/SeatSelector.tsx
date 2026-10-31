@@ -136,6 +136,38 @@ export default function SeatSelector({
         </div>
       )}
 
+      {/* Seat Selection Interactive Guide */}
+      {selectedSeats.length === 0 ? (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+              👉
+            </span>
+            <span className="font-medium">
+              {language === 'bn'
+                ? 'বাসের খালি সিটে (যেমন: A1, A2) ক্লিক করে আসন নির্বাচন করুন'
+                : 'Click on any available seat in the bus map to select'}
+            </span>
+          </div>
+          <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">
+            {language === 'bn' ? `সর্বোচ্চ ${maxSeats}টি` : `Max ${maxSeats}`}
+          </span>
+        </div>
+      ) : (
+        <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              {language === 'bn' ? 'নির্বাচিত আসন:' : 'Selected Seats:'}{' '}
+              <strong className="font-mono text-emerald-800 font-bold">{selectedSeats.join(', ')}</strong>
+            </span>
+          </div>
+          <span className="font-bold text-emerald-700 font-mono">
+            {formatPrice(selectedSeats.length * trip.baseFare)}
+          </span>
+        </div>
+      )}
+
       {/* Seat Map Layout */}
       <div className="mt-6 flex flex-col items-center">
         {/* Bus Cabin Boundary */}
